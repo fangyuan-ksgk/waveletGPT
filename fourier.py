@@ -120,18 +120,22 @@ def animate_approximation_3d(t, positive_freq_signals, step_function):
     return anim
 
 
-def draw_circle_with_wave(frame_idx, folded_signal_pts, wave_pts):
+def draw_circle_with_wave(frame_idx, positive_freq_signals, wave_pts):
     
-    K = len(folded_signal_pts)
-    signal_pt = folded_signal_pts[:, frame_idx]
+    K = positive_freq_signals.shape[0]
+    signal_pt = positive_freq_signals[:, frame_idx]
     wave_pt = (wave_pts[0][:, frame_idx], wave_pts[1][frame_idx] * np.ones(K))
 
     # Create the plot
     plt.figure(figsize=(8, 12))
 
     # Plot circles | Draw circle on the negative side of x-axis suffices (positive circle is the same)
-    for pts in folded_signal_pts:
-        plt.plot(pts.real, pts.imag)
+    for k in range(K):
+        radius = np.abs(positive_freq_signals[k, 0])
+        theta = np.linspace(0, 2*np.pi, 100)
+        circle_x = radius * np.cos(theta)
+        circle_y = radius * np.sin(theta)
+        plt.plot(circle_x, circle_y, color='gray', linestyle='--', label='Circle')
 
     plt.scatter(signal_pt.real, signal_pt.imag, color='red', label='Signal Points')
     plt.scatter(wave_pt[0], wave_pt[1], color='blue', label='Wave Points')
@@ -159,15 +163,15 @@ def draw_circle_with_wave(frame_idx, folded_signal_pts, wave_pts):
     plt.show()
     
     
-def animate_circle_with_wave(folded_signal_pts, wave_pts):
-    K = len(folded_signal_pts)
-    num_frames = folded_signal_pts.shape[1]
+def animate_circle_with_wave(pos_signal_pts, wave_pts):
+    K = len(pos_signal_pts)
+    num_frames = pos_signal_pts.shape[1]
     
     # Create the plot
     fig, ax = plt.subplots(figsize=(8, 12))
 
     # Plot circles | Draw circle on the negative side of x-axis suffices (positive circle is the same)
-    for pts in folded_signal_pts:
+    for pts in pos_signal_pts:
         ax.plot(pts.real, pts.imag)
     
     radii = [ax.plot([], [], linewidth=1)[0] for _ in range(K)]
@@ -175,7 +179,7 @@ def animate_circle_with_wave(folded_signal_pts, wave_pts):
     curves = [ax.plot([], [], linewidth=2)[0] for _ in range(K)]
     
     def animate(frame):
-        signal_pt = folded_signal_pts[:, frame]
+        signal_pt = pos_signal_pts[:, frame]
         wave_pt = (wave_pts[0][:, frame], wave_pts[1][frame] * np.ones(K))
     
         for k in range(K):
@@ -196,9 +200,13 @@ def animate_circle_with_wave(folded_signal_pts, wave_pts):
 
     # Ensure equal aspect ratio
     ax.set_aspect('equal')
+    ax.set_ylim(-1.6, 1.5)
 
     # Add grid
     ax.grid(True)
+    
+    # Apply tight layout to the axes
+    ax.set_tight_layout(True)
 
     # Create animation
     anim = FuncAnimation(fig, animate, frames=num_frames, interval=20, blit=True)
