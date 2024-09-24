@@ -21,7 +21,7 @@ def fold_up_negative_freq(signals):
     return folded_signals
 
 # Discrete Fourier Transform Approximation Animation in 3D 
-def dft(time_steps, samples, num_freq):
+def dft(time_steps, samples, num_freq, extend_time_steps = None):
     
     ns = np.arange(-num_freq, num_freq+1)
     
@@ -29,6 +29,9 @@ def dft(time_steps, samples, num_freq):
     cn = np.trapz(samples[np.newaxis, :] * np.exp(-2j * np.pi * ns[:, np.newaxis] * time_steps[np.newaxis, :]), time_steps)
     
     # Decomposed Signals (with negative frequency signals)
+    if extend_time_steps is not None:
+        time_steps = extend_time_steps
+        
     signals = cn[:, np.newaxis] * np.exp(2j * np.pi * ns[:, np.newaxis] * time_steps[np.newaxis, :])
     
     # Positive Frequency Signals (adding +f and -f together, hope is to cancel out imaginary part)
@@ -137,6 +140,7 @@ def draw_circle_with_wave(frame_idx, positive_freq_signals, wave_pts):
         circle_y = radius * np.sin(theta)
         plt.plot(circle_x, circle_y, color='gray', linestyle='--', label='Circle')
 
+    plt.plot(signal_pt.real, signal_pt.imag, color='green', label='Radius')
     plt.scatter(signal_pt.real, signal_pt.imag, color='red', label='Signal Points')
     plt.scatter(wave_pt[0], wave_pt[1], color='blue', label='Wave Points')
     for r_pt, w_pt in zip(signal_pt, zip(*wave_pt)):
@@ -210,5 +214,103 @@ def animate_circle_with_wave(pos_signal_pts, wave_pts):
 
     # Create animation
     anim = FuncAnimation(fig, animate, frames=num_frames, interval=20, blit=True)
+
+    return anim 
+
+
+def draw_circle_with_wave_exp(frame_idx, positive_freq_signals, wave_pts):
+    
+    K = positive_freq_signals.shape[0]
+    signal_pt = positive_freq_signals[:, frame_idx]
+    wave_pt = (wave_pts[0][:, frame_idx], wave_pts[1][frame_idx] * np.ones(K))
+
+    # Create the plot
+    plt.figure(figsize=(8, 12))
+
+    # Plot circles | Draw circle on the negative side of x-axis suffices (positive circle is the same)
+    for k in range(K):
+        radius = np.abs(positive_freq_signals[k, 0])
+        theta = np.linspace(0, 2*np.pi, 100)
+        circle_x = radius * np.cos(theta)
+        circle_y = radius * np.sin(theta)
+        plt.plot(circle_x, circle_y, color='gray', linestyle='--', label='Circle')
+
+    plt.plot(signal_pt.imag, signal_pt.real, color='green', label='Radius')
+    plt.scatter(signal_pt.imag, signal_pt.real, color='red', label='Signal Points')
+    plt.scatter(wave_pt[1], wave_pt[0], color='blue', label='Wave Points')
+    for r_pt, w_pt in zip(signal_pt, zip(*wave_pt)):
+        plt.plot([r_pt.imag, w_pt[1]], [r_pt.real, w_pt[0]], linestyle='--', marker='.', alpha=0.3)
+
+    # Set labels and title
+    plt.xlabel('Real Part')
+    plt.ylabel('Complex Part')
+    plt.title('DFT')
+
+    # Add legend
+    plt.legend()
+
+    # Ensure equal aspect ratio
+    plt.axis('equal')
+
+    # Add grid
+    plt.grid(True)
+
+    # Show the plot
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+    
+    
+def animate_circle_with_wave_exp(pos_signal_pts, wave_pts, speed_up_factor = 1):
+    K = len(pos_signal_pts)
+    num_frames = pos_signal_pts.shape[1]
+    
+    # Create the plot
+    fig, ax = plt.subplots(figsize=(8, 12))
+
+    # Plot circles | Draw circle on the negative side of x-axis suffices (positive circle is the same)
+    for pts in pos_signal_pts:
+        ax.plot(pts.real, pts.imag)
+    
+    radii = [ax.plot([], [], linewidth=1)[0] for _ in range(K)]
+    lines = [ax.plot([], [], linewidth=1, linestyle='--', marker='.', markersize=15)[0] for _ in range(K)]
+    curves = [ax.plot([], [], linewidth=2)[0] for _ in range(K)]
+    
+    def animate(frame):
+
+        actual_frame = frame * speed_up_factor
+        if actual_frame >= num_frames:
+            actual_frame = num_frames - 1
+
+        signal_pt = pos_signal_pts[:, actual_frame]
+        wave_pt = (wave_pts[0][:, actual_frame], wave_pts[1][actual_frame] * np.ones(K))
+    
+        for k in range(K):
+            radii[k].set_data([0, signal_pt.imag[k]], [0, signal_pt.real[k]])
+            lines[k].set_data([signal_pt.imag[k], wave_pt[1][k]], [signal_pt.real[k], wave_pt[0][k]])
+            
+            curve_x, curve_y = curves[k].get_data()
+            new_x = np.append(curve_x, wave_pt[1][k])
+            new_y = np.append(curve_y, wave_pt[0][k])
+            curves[k].set_data(new_x, new_y)
+
+        return radii + lines + curves
+    
+    # Set labels and title
+    ax.set_xlabel('Real Part')
+    ax.set_ylabel('Complex Part')
+    ax.set_title('Discrete Fourier Transform')
+
+    # Ensure equal aspect ratio
+    ax.set_aspect('equal')
+    ax.set_ylim(-1.5, 1.5)
+    ax.set_xlim(-1.5, 5.6)
+
+    # Add grid
+    ax.grid(True)
+    
+    # Create animation
+    anim = FuncAnimation(fig, animate, frames=num_frames // speed_up_factor, interval=1, blit=True)
 
     return anim 
