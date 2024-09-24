@@ -3,7 +3,7 @@ Experimental code for wavelet GPT and Fourier series expression
 
 </div>
 <div align="center">
-  <img src="anime/fourier_anime_test.gif" width="800" alt="Discrete Fourier Transformation of Step Function">
+  <img src="anime/fourier_anime_use.gif" width="800" alt="Discrete Fourier Transformation of Step Function">
   <p><em>Discrete Fourier Transformation of Step Function</em></p>
 </div>
 
