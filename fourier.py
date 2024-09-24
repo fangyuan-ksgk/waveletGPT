@@ -314,3 +314,198 @@ def animate_circle_with_wave_exp(pos_signal_pts, wave_pts, speed_up_factor = 1):
     anim = FuncAnimation(fig, animate, frames=num_frames // speed_up_factor, interval=1, blit=True)
 
     return anim 
+
+
+def set_draw_params(k):
+    marker_size = max(10, 30 - k * 2)  # Decrease marker size as k increases
+    line_width = max(0.3, 2 - k * 0.15)  # Decrease line width as k increases
+    alpha = max(0.3, 1 - k * 0.02)  # Decrease opacity as k increases
+    
+    # Define a list of colors to cycle through
+    colors = ['blue', 'red', 'green', 'orange', 'purple', 'cyan', 'magenta', 'yellow']
+    color = colors[k % len(colors)]  # Cycle through colors based on k
+    
+    return marker_size, line_width, alpha, color
+
+
+def draw_composite_cricle_wavelet(frame_idx, radius_start_pts, radius_end_pts, wave_pts):
+        
+    K = radius_end_pts.shape[0]
+
+    signal_start_pt = radius_start_pts[:, frame_idx]
+    signal_end_pt = radius_end_pts[:, frame_idx]
+
+    wave_pt = (wave_pts[0][frame_idx], wave_pts[1][frame_idx]) # Single Point here | Different from before
+
+    plt.figure(figsize=(12, 8))
+
+    # Plot circles | Draw circle on the negative side of x-axis suffices (positive circle is the same)
+    for k in range(K):
+        circle_center = signal_start_pt[k]
+        radius = np.abs(signal_end_pt[k] - signal_start_pt[k])
+        theta = np.linspace(0, 2*np.pi, 100)
+        circle_x = circle_center.real + radius * np.cos(theta)
+        circle_y = circle_center.imag + radius * np.sin(theta)
+        
+        marker_size, line_width, alpha, color_ = set_draw_params(k)
+
+        
+        plt.plot(circle_x, circle_y, color=color_, 
+                linewidth=line_width, alpha=alpha, label='Circle' if k == 0 else "")
+
+    # Plot Wave Point and Radii
+    for k in range(K):
+        marker_size, line_width, alpha, color_ = set_draw_params(k)
+
+        plt.quiver(signal_start_pt[k].real, signal_start_pt[k].imag,
+            signal_end_pt[k].real - signal_start_pt[k].real,
+            signal_end_pt[k].imag - signal_start_pt[k].imag,
+            color=color_, alpha=alpha, scale=1, scale_units='xy', angles='xy',
+            width=line_width * 0.0015, headwidth=marker_size * 0.15, 
+            headlength=marker_size * 0.15, headaxislength=marker_size * 0.15)
+
+
+    plt.scatter(wave_pt[0], wave_pt[1], color=color_, label='Wave Points')
+
+    r_pt = signal_end_pt[-1]
+    plt.plot([r_pt.real, wave_pt[0]], [r_pt.imag, wave_pt[1]], marker='.')
+
+    # Set labels and title
+    plt.xlabel('Real Part')
+    plt.ylabel('Complex Part')
+    plt.title('DFT')
+
+    # Add legend
+    plt.legend()
+
+    # Ensure equal aspect ratio
+    plt.axis('equal')
+
+    # Add grid
+    plt.grid(True)
+
+    # Show the plot
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+    
+    
+def animate_composite_circle_wavelet(radius_start_pts, radius_end_pts, wave_pts):
+    K = radius_end_pts.shape[0]
+    num_frames = radius_end_pts.shape[1]
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    # Initialize empty plots for circles, radii, wave point, and curve
+    circles = [ax.plot([], [], alpha=0.5)[0] for _ in range(K)]
+    radii = [ax.plot([], [], 'r-')[0] for _ in range(K)]  # Changed from quiver to plot
+    wave_point, = ax.plot([], [], 'ro', markersize=5)
+    connecting_line, = ax.plot([], [], 'g--')
+    curve, = ax.plot([], [], 'b-', linewidth=2)  # Added curve for composite signal
+
+    ax.set_xlim(np.min(radius_start_pts.real) - 1, np.max(wave_pts[0]) + 1)
+    ax.set_ylim(np.min(radius_start_pts.imag) - 1, np.max(wave_pts[1]) + 1)
+    ax.set_aspect('equal')
+    ax.grid(True)
+    ax.set_xlabel('Real Part')
+    ax.set_ylabel('Complex Part')
+    ax.set_title('DFT Animation')
+
+    def animate(frame):
+        for k in range(K):
+            # Update circles
+            marker_size, line_width, alpha, color = set_draw_params(k)
+            circle_center = radius_start_pts[k, frame]
+            radius = np.abs(radius_end_pts[k, frame] - radius_start_pts[k, frame])
+            theta = np.linspace(0, 2*np.pi, 100)
+            circle_x = circle_center.real + radius * np.cos(theta)
+            circle_y = circle_center.imag + radius * np.sin(theta)
+            circles[k].set_data(circle_x, circle_y)
+            circles[k].set_color(color)
+            circles[k].set_alpha(alpha)
+            circles[k].set_linewidth(line_width)
+
+            # Update radii
+            radii[k].set_data([radius_start_pts[k, frame].real, radius_end_pts[k, frame].real],
+                              [radius_start_pts[k, frame].imag, radius_end_pts[k, frame].imag])
+            radii[k].set_color(color)
+            radii[k].set_alpha(alpha)
+            radii[k].set_linewidth(line_width)
+
+        # Update wave point and connecting line
+        wave_point.set_data(wave_pts[0][frame], wave_pts[1][frame])
+        connecting_line.set_data([radius_end_pts[-1, frame].real, wave_pts[0][frame]],
+                                 [radius_end_pts[-1, frame].imag, wave_pts[1][frame]])
+        connecting_line.set_color(color)
+        
+        # Update curve (composite signal)
+        curve.set_data(wave_pts[0][:frame+1], wave_pts[1][:frame+1])
+        curve.set_color(color)
+        
+        return circles + radii + [wave_point, connecting_line, curve]
+        
+    anim = FuncAnimation(fig, animate, frames=num_frames, interval=50, blit=True)
+    plt.close(fig)  # Prevent duplicate display in Jupyter
+    return anim
+
+
+
+
+def animate_composite_circle_wavelet_exp(radius_start_pts, radius_end_pts, wave_pts):
+    K = radius_end_pts.shape[0]
+    num_frames = radius_end_pts.shape[1]
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    # Initialize empty plots for circles, radii, wave point, and curve
+    circles = [ax.plot([], [], alpha=0.5)[0] for _ in range(K)]
+    radii = [ax.plot([], [], 'r-')[0] for _ in range(K)]  # Changed from quiver to plot
+    wave_point, = ax.plot([], [], 'ro', markersize=5)
+    connecting_line, = ax.plot([], [], 'g--')
+    curve, = ax.plot([], [], 'b-', linewidth=2)  # Added curve for composite signal
+
+    ax.set_ylim(np.min(radius_start_pts.real) - 1, np.max(wave_pts[0]) + 1)
+    ax.set_xlim(np.min(radius_start_pts.imag) - 1, np.max(wave_pts[1]) + 1)
+    ax.set_aspect('equal')
+    ax.grid(True)
+    ax.set_ylabel('Real Part')
+    ax.set_xlabel('Complex Part')
+    ax.set_title('DFT Animation')
+
+    def animate(frame):
+        for k in range(K):
+            # Update circles
+            marker_size, line_width, alpha, color = set_draw_params(k)
+            circle_center = radius_start_pts[k, frame]
+            radius = np.abs(radius_end_pts[k, frame] - radius_start_pts[k, frame])
+            theta = np.linspace(0, 2*np.pi, 100)
+            circle_x = circle_center.real + radius * np.cos(theta)
+            circle_y = circle_center.imag + radius * np.sin(theta)
+            circles[k].set_data(circle_y, circle_x)
+            circles[k].set_color(color)
+            circles[k].set_alpha(alpha)
+            circles[k].set_linewidth(line_width)
+
+            # Update radii
+            radii[k].set_data([radius_start_pts[k, frame].imag, radius_end_pts[k, frame].imag],
+                              [radius_start_pts[k, frame].real, radius_end_pts[k, frame].real])
+            radii[k].set_color(color)
+            radii[k].set_alpha(alpha)
+            radii[k].set_linewidth(line_width)
+
+        # Update wave point and connecting line
+        wave_point.set_data(wave_pts[1][frame], wave_pts[0][frame])
+        connecting_line.set_data([radius_end_pts[-1, frame].imag, wave_pts[1][frame]],
+                                 [radius_end_pts[-1, frame].real, wave_pts[0][frame]])
+        connecting_line.set_color(color)
+        
+        # Update curve (composite signal)
+        curve.set_data(wave_pts[1][:frame+1], wave_pts[0][:frame+1])
+        curve.set_color(color)
+        
+        return circles + radii + [wave_point, connecting_line, curve]
+        
+    anim = FuncAnimation(fig, animate, frames=num_frames, interval=50, blit=True)
+    plt.close(fig)  # Prevent duplicate display in Jupyter
+    return anim
