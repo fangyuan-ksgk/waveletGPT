@@ -267,7 +267,7 @@ def animate_circle_with_wave_exp(pos_signal_pts, wave_pts, speed_up_factor = 1):
     num_frames = pos_signal_pts.shape[1]
     
     # Create the plot
-    fig, ax = plt.subplots(figsize=(8, 12))
+    fig, ax = plt.subplots(figsize=(14, 7))
 
     # Plot circles | Draw circle on the negative side of x-axis suffices (positive circle is the same)
     for pts in pos_signal_pts:
