@@ -3,7 +3,7 @@
 </div>
 <div align="center">
   <img src="anime/fourier_anime_composite.gif" width="800" alt="Discrete Fourier Transformation v1">
-  <p><em>Any function is a sum of periodic sine waves</em></p>
+  <p><em>Any function is an infinite sum of periodic sine waves</em></p>
 </div>
 
 
